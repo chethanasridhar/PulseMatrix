@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MediTot — AI Health Triage</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:        #080c10;
+    --surface:   #0d1117;
+    --card:      #111820;
+    --border:    #1e2d3d;
+    --accent:    #00d4ff;
+    --accent2:   #00ff88;
+    --red:       #ff4466;
+    --yellow:    #ffcc00;
+    --text:      #e2e8f0;
+    --muted:     #4a6080;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+    animation: fadeDown 0.7s ease both;
+  }
+
+  .logo-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+
+  .logo-icon {
+    width: 44px; height: 44px;
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 0 18px rgba(0,212,255,0.3);
+  }
+
+  h1 {
+    font-family: var(--font-head);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .tagline {
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .badge {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* ── STEP INDICATOR ── */
+  .steps {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 40px;
+    animation: fadeDown 0.7s 0.1s ease both;
+  }
+
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+    border-bottom: 2px solid var(--border);
+    transition: all 0.3s;
+  }
+
+  .step.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .step.done {
+    color: var(--accent2);
+    border-bottom-color: var(--accent2);
+  }
+
+  .step-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.5s ease both;
+    display: none;
+  }
+
+  .card.active { display: block; }
+
+  .card-title {
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-title::before {
+    content: '';
+    width: 4px; height: 20px;
+    background: var(--accent);
+    border-radius: 2px;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* ── FORM ELEMENTS ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-group.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  input, select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,212,255,0.1);
+  }
+
+  select option { background: var(--surface); }
+
+  /* ── TOGGLE BUTTONS ── */
+  .toggle-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .toggle-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .toggle-btn.selected {
+    background: rgba(0,212,255,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── SYMPTOM CHIPS ── */
+  .symptom-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .sym-chip {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--muted);
+    background: var(--surface);
+    letter-spacing: 0.5px;
+  }
+
+  .sym-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+  .sym-chip.selected {
+    background: rgba(0,212,255,0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 8px rgba(0,212,255,0.15);
+  }
+
+  .selected-symptoms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 36px;
+    padding: 8px;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    margin-top: 12px;
+  }
+
+  .sel-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.3);
+    border-radius: 20px;
+    font-size: 0.7rem;
+    color: var(--accent2);
+  }
+
+  .sel-tag span {
+    cursor: pointer;
+    opacity: 0.6;
+    font-size: 0.9rem;
+    line-height: 1;
+  }
+  .sel-tag span:hover { opacity: 1; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    border-radius: 10px;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    border: none;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #0099cc);
+    color: #000;
+    box-shadow: 0 4px 20px rgba(0,212,255,0.3);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(0,212,255,0.45);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 28px;
+  }
+
+  /* ── MEDICAL HISTORY SECTION ── */
+  .med-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .med-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .med-card-title {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .extra-fields {
+    margin-top: 12px;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .extra-fields.show { display: flex; }
+
+  /* ── ANALYZING SCREEN ── */
+  #analyzeScreen {
+    text-align: center;
+    padding: 60px 32px;
+  }
+
+  .pulse-ring {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    margin: 0 auto 24px;
+    position: relative;
+    animation: pulse 1.5s ease infinite;
+  }
+
+  .pulse-ring::after {
+    content: '🔬';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    animation: none;
+  }
+
+  .analyze-text {
+    font-family: var(--font-head);
+    font-size: 1.4rem;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .analyze-sub {
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+
+  .progress-bar-wrap {
+    width: 300px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 24px auto 0;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.1s linear;
+  }
+
+  /* ── RESULTS ── */
+  #resultsScreen { display: none; }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .patient-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 0.75rem;
+  }
+
+  .patient-pill .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent2);
+    box-shadow: 0 0 6px var(--accent2);
+  }
+
+  /* ── DISEASE RESULT BARS ── */
+  .disease-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
+
+  .disease-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    transition: border-color 0.2s;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .disease-item:hover { border-color: var(--accent); }
+  .disease-item.top-match {
+    border-color: var(--accent2);
+    background: rgba(0,255,136,0.04);
+  }
+
+  .disease-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .disease-name {
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 1rem;
+  }
+
+  .disease-right { display: flex; align-items: center; gap: 10px; }
+
+  .sev-badge {
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+  }
+
+  .sev-LOW    { background: rgba(0,255,136,0.15); color: var(--accent2); border: 1px solid rgba(0,255,136,0.3); }
+  .sev-MEDIUM { background: rgba(255,204,0,0.15);  color: var(--yellow);  border: 1px solid rgba(255,204,0,0.3); }
+  .sev-HIGH   { background: rgba(255,68,102,0.15); color: var(--red);    border: 1px solid rgba(255,68,102,0.3); }
+
+  .pct-text {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: var(--font-head);
+  }
+
+  .bar-track {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    width: 0%;
+    transition: width 1.2s cubic-bezier(0.16,1,0.3,1);
+  }
+
+  .bar-low    { background: linear-gradient(90deg, #00ff88, #00cc6a); }
+  .bar-medium { background: linear-gradient(90deg, #ffcc00, #ff9900); }
+  .bar-high   { background: linear-gradient(90deg, #ff4466, #cc0033); }
+
+  /* ── RED FLAGS ── */
+  .red-flag-box {
+    background: rgba(255,68,102,0.08);
+    border: 1px solid rgba(255,68,102,0.4);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    animation: flashIn 0.5s ease both;
+  }
+
+  .red-flag-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-head);
+    font-weight: 700;
+    color: var(--red);
+    font-size: 0.95rem;
+    margin-bottom: 14px;
+    letter-spacing: 0.5px;
+  }
+
+  .flag-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 0.8rem;
+    color: #ffaabb;
+    border-bottom: 1px solid rgba(255,68,102,0.1);
+  }
+
+  .flag-item:last-child { border-bottom: none; }
+  .flag-arrow { color: var(--red); flex-shrink: 0; }
+
+  /* ── TOP RECOMMENDATION ── */
+  .rec-box {
+    background: rgba(0,212,255,0.05);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+
+  .rec-label {
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .rec-text {
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  /* ── MEDICAL PROFILE SUMMARY ── */
+  .med-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .med-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .med-pill-label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .med-pill-val {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .med-pill-val.warn { color: var(--yellow); }
+  .med-pill-val.danger { color: var(--red); }
+  .med-pill-val.ok { color: var(--accent2); }
+
+  /* ── REPORT BOX ── */
+  .report-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    font-size: 0.75rem;
+    line-height: 1.8;
+    color: var(--muted);
+    white-space: pre-wrap;
+    font-family: var(--font-mono);
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(0,212,255,0.4); }
+    70%  { box-shadow: 0 0 0 20px rgba(0,212,255,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,212,255,0); }
+  }
+
+  @keyframes flashIn {
+    0%   { opacity: 0; transform: scale(0.97); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* ── MISC ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 24px 0;
+  }
+
+  .hint { font-size: 0.7rem; color: var(--muted); margin-top: 6px; }
+  .section-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .top-match-label {
+    font-size: 0.65rem;
+    color: var(--accent2);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  @media (max-width: 600px) {
+    .form-grid, .med-row, .med-summary { grid-template-columns: 1fr; }
+    .steps { gap: 0; }
+    .step { padding: 8px 10px; font-size: 0.65rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-row">
+      <div class="logo-icon">⚕</div>
+      <h1>MediTot</h1>
+    </div>
+    <p class="tagline">AI-Powered Health Triage System</p>
+    <span class="badge">v3.0 &nbsp;·&nbsp; Rule-Based Diagnostic Engine &nbsp;·&nbsp; 10 Conditions</span>
+  </header>
+
+  <!-- STEP INDICATOR -->
+  <div class="steps">
+    <div class="step active" id="s1"><div class="step-num">1</div>PATIENT</div>
+    <div class="step" id="s2"><div class="step-num">2</div>HISTORY</div>
+    <div class="step" id="s3"><div class="step-num">3</div>SYMPTOMS</div>
+    <div class="step" id="s4"><div class="step-num">4</div>RESULTS</div>
+  </div>
+
+  <!-- STEP 1: PATIENT INFO -->
+  <div class="card active" id="card1">
+    <div class="card-title">Patient Information</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Full Name</label>
+        <input type="text" id="name" placeholder="e.g. Abi Sharma"/>
+      </div>
+      <div class="form-group">
+        <label>Age</label>
+        <input type="number" id="age" placeholder="25" min="1" max="120"/>
+      </div>
+      <div class="form-group">
+        <label>Gender</label>
+        <select id="gender">
+          <option value="">Select</option>
+          <option>Male</option>
+          <option>Female</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Weight (kg)</label>
+        <input type="number" id="weight" placeholder="65"/>
+      </div>
+      <div class="form-group">
+        <label>Height (cm)</label>
+        <input type="number" id="height" placeholder="165"/>
+      </div>
+    </div>
+    <div id="bmiResult" style="margin-top:14px; font-size:0.8rem; color:var(--muted);"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goStep2()">NEXT &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: MEDICAL HISTORY -->
+  <div class="card" id="card2">
+    <div class="card-title">Medical History</div>
+    <div class="med-row">
+
+      <!-- FEVER -->
+      <div class="med-card">
+        <div class="med-card-title">🌡 Fever</div>
+        <div class="toggle-row">
+          <button class="toggle-btn selected" onclick="toggleMed(this,'fever','no')">No</button>
+          <button class="toggle-btn" onclick="toggleMed(this,'fever','yes')">Yes</button>
+        </div>
+        <div class="extra-fields" id="feverFields">
+          <label>Temperature (°F)</label>
+          <input type="number" id="feverTemp" placeholder="101.5" step="0.1"/>
+          <label>Duration (days)</label>
+          <input type="number" id="feverDays" placeholder="2"/>
+        </div>
+      </div>
+
+      <!-- DIABETES -->
+      <div class="med-card">
+        <div class="med-card-title">🩸 Diabetic</div>
+        <div class="toggle-row">
+          <button class="toggle-btn selected" onclick="toggleMed(this,'diabetes','no')">No</button>
+          <button class="toggle-btn" onclick="toggleMed(this,'diabetes','yes')">Yes</button>
+        </div>
+        <div class="extra-fields" id="diabetesFields">
+          <label>Fasting Blood Sugar (mg/dL)</label>
+          <input type="number" id="bloodSugar" placeholder="126"/>
+        </div>
+      </div>
+
+      <!-- THYROID -->
+      <div class="med-card">
+        <div class="med-card-title">🦋 Thyroid</div>
+        <div class="toggle-row">
+          <button class="toggle-btn selected" onclick="setThyroid(this,'none')">None</button>
+          <button class="toggle-btn" onclick="setThyroid(this,'hypo')">Hypo</button>
+          <button class="toggle-btn" onclick="setThyroid(this,'hyper')">Hyper</button>
+        </div>
+      </div>
+
+      <!-- BLOOD PRESSURE -->
+      <div class="med-card">
+        <div class="med-card-title">💓 Blood Pressure</div>
+        <div class="toggle-row">
+          <button class="toggle-btn selected" onclick="setBP(this,'normal')">Normal</button>
+          <button class="toggle-btn" onclick="setBP(this,'high')">High</button>
+          <button class="toggle-btn" onclick="setBP(this,'low')">Low</button>
+        </div>
+        <div class="extra-fields" id="bpFields">
+          <label>Systolic / Diastolic (mmHg)</label>
+          <div style="display:flex;gap:8px;">
+            <input type="number" id="bpSys" placeholder="130"/>
+            <input type="number" id="bpDia" placeholder="85"/>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(1)">← BACK</button>
+      <button class="btn btn-primary" onclick="goStep3()">NEXT →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: SYMPTOMS -->
+  <div class="card" id="card3">
+    <div class="card-title">Select Symptoms</div>
+    <p class="hint" style="margin-bottom:16px;">Tap to select all symptoms you're experiencing. Select at least one.</p>
+    <div class="symptom-grid" id="symptomGrid"></div>
+    <div class="divider"></div>
+    <div class="section-label">Selected symptoms</div>
+    <div class="selected-symptoms" id="selectedSymptoms">
+      <span style="font-size:0.72rem;color:var(--muted);align-self:center;">None selected yet</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(2)">← BACK</button>
+      <button class="btn btn-primary" onclick="runDiagnosis()">ANALYZE ⚡</button>
+    </div>
+  </div>
+
+  <!-- ANALYZING SCREEN -->
+  <div class="card" id="analyzeScreen">
+    <div style="text-align:center;padding:40px 0;">
+      <div class="pulse-ring"></div>
+      <div class="analyze-text">Analyzing Symptoms...</div>
+      <div class="analyze-sub" id="analyzeMsg">RUNNING SCORING ENGINE</div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="resultsScreen">
+    <div class="card active" id="resultsCard">
+      <div class="card-title">Diagnosis Report</div>
+
+      <div class="result-header">
+        <div class="patient-pill">
+          <div class="dot"></div>
+          <span id="patientPill">—</span>
+        </div>
+        <div style="font-size:0.7rem;color:var(--muted)" id="timestampLabel"></div>
+      </div>
+
+      <!-- MEDICAL PROFILE PILLS -->
+      <div class="med-summary" id="medSummary"></div>
+
+      <!-- RED FLAGS -->
+      <div id="redFlagBox"></div>
+
+      <!-- DISEASE BARS -->
+      <div class="section-label">Differential Diagnosis</div>
+      <div class="disease-list" id="diseaseList"></div>
+
+      <!-- RECOMMENDATION -->
+      <div class="rec-box" id="recBox"></div>
+
+      <!-- REPORT -->
+      <div class="section-label">Full Report</div>
+      <div class="report-box" id="reportBox"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="resetAll()">← NEW DIAGNOSIS</button>
+        <button class="btn btn-primary" onclick="downloadReport()">⬇ DOWNLOAD REPORT</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── STATE ──
+const state = {
+  name:'', age:0, gender:'', weight:0, height:0, bmi:0, bmiCat:'',
+  fever:false, feverTemp:0, feverDays:0,
+  diabetic:false, bloodSugar:0,
+  thyroid:'none',
+  bp:'normal', bpSys:0, bpDia:0,
+  selectedSymptoms: new Set()
+};
+
+// ── SYMPTOMS ──
+const SYMPTOMS = [
+  'fever','cough','fatigue','headache','sore throat','runny nose',
+  'body ache','chills','nausea','vomiting','diarrhea','chest pain',
+  'shortness of breath','loss of smell','rash','joint pain',
+  'dizziness','abdominal pain','loss of appetite','sweating'
+];
+
+// ── DISEASE DATABASE ──
+const DISEASES = [
+  { name:'Common Cold',         sev:'LOW',
+    flags:[1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+    w:    [3,4,3,3,5,5,0,0,0,0,0,0,0,0,0,0,0,0,2,0],
+    rec:'Rest, stay hydrated, take OTC cold medicine. Should resolve in 7–10 days.' },
+  { name:'Influenza (Flu)',      sev:'MEDIUM',
+    flags:[1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,1,0,1,1],
+    w:    [5,4,5,4,3,0,5,5,0,0,0,0,0,0,0,0,3,0,3,4],
+    rec:'Rest, fluids, fever reducers. See a doctor if symptoms worsen after 5 days.' },
+  { name:'COVID-19',             sev:'HIGH',
+    flags:[1,1,1,1,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,0],
+    w:    [4,4,5,3,0,0,4,3,0,0,0,0,5,6,0,0,0,0,3,0],
+    rec:'Isolate immediately and get tested. Seek emergency care if breathing difficulty occurs.' },
+  { name:'Gastroenteritis',      sev:'MEDIUM',
+    flags:[1,0,1,1,0,0,0,1,1,1,1,0,0,0,0,0,1,1,1,0],
+    w:    [3,0,3,2,0,0,0,2,5,5,5,0,0,0,0,0,3,5,4,0],
+    rec:'Stay hydrated, eat bland foods. See a doctor if vomiting persists beyond 2 days.' },
+  { name:'Pneumonia',            sev:'HIGH',
+    flags:[1,1,1,1,0,0,1,1,1,0,0,1,1,0,0,0,0,0,1,1],
+    w:    [5,5,5,3,0,0,4,4,3,0,0,5,6,0,0,0,0,0,3,4],
+    rec:'URGENT: See a doctor immediately. Antibiotics and possibly hospitalization needed.' },
+  { name:'Dengue Fever',         sev:'HIGH',
+    flags:[1,0,1,1,0,0,1,1,1,1,0,0,0,0,1,1,1,1,1,1],
+    w:    [6,0,5,5,0,0,6,4,4,3,0,0,0,0,5,6,4,4,4,4],
+    rec:'URGENT: Get a blood test immediately. Avoid aspirin/ibuprofen. Stay hydrated.' },
+  { name:'Migraine',             sev:'LOW',
+    flags:[0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,0,1,0],
+    w:    [0,0,3,6,0,0,0,0,4,3,0,0,0,0,0,0,5,0,3,0],
+    rec:'Rest in a dark quiet room. Take pain relievers. See a neurologist if recurring.' },
+  { name:'Typhoid Fever',        sev:'HIGH',
+    flags:[1,0,1,1,1,0,1,0,1,0,1,0,0,0,1,0,0,1,1,1],
+    w:    [6,0,5,4,3,0,4,0,4,0,4,0,0,0,4,0,0,5,5,5],
+    rec:'URGENT: See a doctor for blood culture test. Requires antibiotic treatment.' },
+  { name:'Asthma / Respiratory', sev:'HIGH',
+    flags:[0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,1,0,0,1],
+    w:    [0,5,4,0,0,0,0,0,0,0,0,5,6,0,0,0,4,0,0,3],
+    rec:'EMERGENCY if severe: Use inhaler immediately. Seek emergency care if no relief.' },
+  { name:'Food Poisoning',       sev:'MEDIUM',
+    flags:[1,0,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1],
+    w:    [3,0,3,3,0,0,0,0,6,6,5,4,0,0,0,0,4,5,4,3],
+    rec:'Hydrate aggressively. Avoid solid food for 6 hours. See doctor if symptoms persist >48hrs.' }
+];
+
+// ── BMI LIVE ──
+function calcBMI(){
+  const w = parseFloat(document.getElementById('weight').value);
+  const h = parseFloat(document.getElementById('height').value);
+  const el = document.getElementById('bmiResult');
+  if(w>0 && h>0){
+    const bmi = w/((h/100)**2);
+    let cat = bmi<18.5?'Underweight':bmi<25?'Normal':bmi<30?'Overweight':'Obese';
+    let col = bmi<18.5?'var(--yellow)':bmi<25?'var(--accent2)':bmi<30?'var(--yellow)':'var(--red)';
+    el.innerHTML = `BMI: <span style="color:${col};font-weight:700;">${bmi.toFixed(1)}</span> — ${cat}`;
+  } else { el.innerHTML=''; }
+}
+document.getElementById('weight').addEventListener('input', calcBMI);
+document.getElementById('height').addEventListener('input', calcBMI);
+
+// ── MEDICAL TOGGLES ──
+let medState = { fever:'no', diabetes:'no', thyroid:'none', bp:'normal' };
+
+function toggleMed(btn, field, val){
+  medState[field] = val;
+  btn.closest('.med-card').querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const fieldsEl = document.getElementById(field+'Fields');
+  if(fieldsEl){ fieldsEl.classList.toggle('show', val==='yes'); }
+}
+
+function setThyroid(btn, val){
+  medState.thyroid = val;
+  btn.closest('.med-card').querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function setBP(btn, val){
+  medState.bp = val;
+  btn.closest('.med-card').querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('bpFields').classList.toggle('show', val!=='normal');
+}
+
+// ── SYMPTOM GRID ──
+function buildSymptomGrid(){
+  const grid = document.getElementById('symptomGrid');
+  grid.innerHTML = '';
+  SYMPTOMS.forEach(s => {
+    const chip = document.createElement('button');
+    chip.className = 'sym-chip' + (state.selectedSymptoms.has(s)?' selected':'');
+    chip.textContent = s;
+    chip.onclick = () => toggleSymptom(s, chip);
+    grid.appendChild(chip);
+  });
+}
+
+function toggleSymptom(s, chip){
+  if(state.selectedSymptoms.has(s)){
+    state.selectedSymptoms.delete(s);
+    chip.classList.remove('selected');
+  } else {
+    state.selectedSymptoms.add(s);
+    chip.classList.add('selected');
+  }
+  renderSelectedTags();
+}
+
+function renderSelectedTags(){
+  const el = document.getElementById('selectedSymptoms');
+  if(state.selectedSymptoms.size===0){
+    el.innerHTML = '<span style="font-size:0.72rem;color:var(--muted);align-self:center;">None selected yet</span>';
+    return;
+  }
+  el.innerHTML = '';
+  state.selectedSymptoms.forEach(s => {
+    const tag = document.createElement('div');
+    tag.className = 'sel-tag';
+    tag.innerHTML = `${s} <span onclick="removeSymptom('${s}')">×</span>`;
+    el.appendChild(tag);
+  });
+}
+
+function removeSymptom(s){
+  state.selectedSymptoms.delete(s);
+  buildSymptomGrid();
+  renderSelectedTags();
+}
+
+// ── STEP NAVIGATION ──
+function goStep(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById('card'+i).classList.toggle('active', i===n);
+    const sEl = document.getElementById('s'+i);
+    sEl.classList.remove('active','done');
+    if(i===n) sEl.classList.add('active');
+    else if(i<n) sEl.classList.add('done');
+  });
+  document.getElementById('s4').classList.remove('active','done');
+}
+
+function goStep2(){
+  const name = document.getElementById('name').value.trim();
+  const age  = document.getElementById('age').value;
+  const g    = document.getElementById('gender').value;
+  const w    = document.getElementById('weight').value;
+  const h    = document.getElementById('height').value;
+  if(!name||!age||!g||!w||!h){ alert('Please fill in all patient details.'); return; }
+  state.name=name; state.age=+age; state.gender=g;
+  state.weight=+w; state.height=+h;
+  state.bmi = state.weight/((state.height/100)**2);
+  state.bmiCat = state.bmi<18.5?'Underweight':state.bmi<25?'Normal':state.bmi<30?'Overweight':'Obese';
+  goStep(2);
+}
+
+function goStep3(){
+  goStep(3);
+  buildSymptomGrid();
+}
+
+// ── SCORING ENGINE ──
+function computeScores(symSet){
+  const syms = Array.from(symSet);
+  const results = DISEASES.map(d => {
+    let score = 0;
+    let maxScore = d.w.reduce((a,b)=>a+b,0);
+    syms.forEach(sym => {
+      const idx = SYMPTOMS.indexOf(sym);
+      if(idx>=0 && d.flags[idx]) score += d.w[idx];
+    });
+
+    // Risk multiplier
+    const riskElev = state.age>=60 || state.bmi>=30;
+    if(riskElev && d.sev==='HIGH') score = Math.floor(score*1.1);
+
+    // Fever modifiers
+    if(medState.fever==='yes'){
+      const temp = +document.getElementById('feverTemp').value||0;
+      const days = +document.getElementById('feverDays').value||0;
+      if(temp>=103){
+        if(d.name==='Typhoid Fever')       score=Math.floor(score*1.30);
+        if(d.name==='Dengue Fever')        score=Math.floor(score*1.25);
+        if(d.name==='Pneumonia')           score=Math.floor(score*1.20);
+        if(d.name==='Influenza (Flu)')     score=Math.floor(score*1.15);
+      }
+      if(days>=5){
+        if(d.name==='Typhoid Fever')       score=Math.floor(score*1.20);
+        if(d.name==='Dengue Fever')        score=Math.floor(score*1.10);
+      }
+    }
+
+    // Diabetes modifiers
+    if(medState.diabetes==='yes'){
+      const bs = +document.getElementById('bloodSugar').value||0;
+      const mult = bs>=126?1.25:bs>=100?1.10:1.05;
+      if(d.name==='Pneumonia')            score=Math.floor(score*mult);
+      if(d.name==='Typhoid Fever')        score=Math.floor(score*mult);
+      if(d.name==='Asthma / Respiratory') score=Math.floor(score*1.10);
+    }
+
+    // Thyroid modifiers
+    if(medState.thyroid==='hypo'){
+      if(d.name==='Influenza (Flu)')      score=Math.floor(score*1.10);
+      if(d.name==='Migraine')             score=Math.floor(score*1.15);
+      if(d.sev==='HIGH')                  score=Math.floor(score*1.05);
+    }
+    if(medState.thyroid==='hyper'){
+      if(d.name==='Asthma / Respiratory') score=Math.floor(score*1.20);
+      if(d.name==='Pneumonia')            score=Math.floor(score*1.10);
+    }
+
+    // BP modifiers
+    if(medState.bp==='high'){
+      if(d.name==='Asthma / Respiratory') score=Math.floor(score*1.25);
+      if(d.name==='Pneumonia')            score=Math.floor(score*1.15);
+      if(d.name==='Migraine')             score=Math.floor(score*1.20);
+    }
+    if(medState.bp==='low'){
+      if(d.name==='Dengue Fever')         score=Math.floor(score*1.15);
+      if(d.name==='Gastroenteritis')      score=Math.floor(score*1.10);
+      if(d.name==='Food Poisoning')       score=Math.floor(score*1.10);
+    }
+
+    let pct = maxScore>0 ? Math.min(99, (score/maxScore)*100) : 0;
+    return { ...d, score, pct };
+  });
+  return results.sort((a,b)=>b.pct-a.pct);
+}
+
+// ── RED FLAGS ──
+function detectRedFlags(symSet){
+  const flags = [];
+  const has = s => symSet.has(s);
+  if(has('chest pain')&&has('shortness of breath'))
+    flags.push('Chest pain + breathing difficulty — possible cardiac/respiratory emergency');
+  if(has('fever')&&has('rash')&&has('joint pain'))
+    flags.push('Fever + rash + joint pain — possible Dengue, get blood test immediately');
+  if(state.age>=60&&(state.bmi>=30))
+    flags.push('Age 60+ with elevated BMI — high vulnerability profile, act quickly');
+  if(has('fever')&&has('vomiting'))
+    flags.push('Fever with vomiting — risk of dehydration, monitor closely');
+  if(medState.diabetes==='yes'){
+    const bs=+document.getElementById('bloodSugar').value||0;
+    if(bs>=126&&has('fever'))
+      flags.push('Uncontrolled diabetes + fever — infection risk critically elevated');
+  }
+  if(medState.bp==='high'){
+    const sys=+document.getElementById('bpSys').value||0;
+    if(sys>160&&has('chest pain'))
+      flags.push('Severely high BP (>160 mmHg) + chest pain — hypertensive emergency risk');
+  }
+  if(medState.thyroid==='hyper'&&has('shortness of breath'))
+    flags.push('Hyperthyroidism + breathing difficulty — thyroid storm risk, see doctor');
+  if(medState.fever==='yes'){
+    const temp=+document.getElementById('feverTemp').value||0;
+    if(temp>=104) flags.push('Fever ≥ 104°F — dangerously high, seek medical attention immediately');
+  }
+  return flags;
+}
+
+// ── RUN DIAGNOSIS ──
+function runDiagnosis(){
+  if(state.selectedSymptoms.size===0){ alert('Please select at least one symptom.'); return; }
+
+  // Show analyze screen
+  [1,2,3].forEach(i=>document.getElementById('card'+i).classList.remove('active'));
+  document.getElementById('analyzeScreen').classList.add('active');
+  document.getElementById('resultsScreen').style.display='none';
+  document.getElementById('s4').classList.remove('done');
+  document.getElementById('s3').classList.remove('active'); document.getElementById('s3').classList.add('done');
+
+  const msgs = ['RUNNING SCORING ENGINE','APPLYING MEDICAL MODIFIERS','SORTING BY MATCH SCORE','CHECKING RED FLAGS','GENERATING REPORT'];
+  let pct = 0, msgIdx = 0;
+  const fill = document.getElementById('progressFill');
+  const msgEl = document.getElementById('analyzeMsg');
+  const iv = setInterval(()=>{
+    pct += 2;
+    fill.style.width = pct+'%';
+    msgEl.textContent = msgs[Math.min(msgIdx, msgs.length-1)];
+    if(pct%20===0) msgIdx++;
+    if(pct>=100){
+      clearInterval(iv);
+      setTimeout(showResults, 300);
+    }
+  }, 30);
+}
+
+// ── SHOW RESULTS ──
+function showResults(){
+  document.getElementById('analyzeScreen').classList.remove('active');
+  document.getElementById('resultsScreen').style.display='block';
+  document.getElementById('s4').classList.add('active');
+
+  const sorted = computeScores(state.selectedSymptoms);
+  const flags  = detectRedFlags(state.selectedSymptoms);
+  const top    = sorted[0];
+
+  // Patient pill
+  document.getElementById('patientPill').textContent =
+    `${state.name} · ${state.age}y · ${state.gender} · BMI ${state.bmi.toFixed(1)} (${state.bmiCat})`;
+  document.getElementById('timestampLabel').textContent = new Date().toLocaleString();
+
+  // Med summary pills
+  const bmiColor = state.bmi>=30?'danger':state.bmi>=25?'warn':'ok';
+  const thyLabel = medState.thyroid==='none'?'None':medState.thyroid==='hypo'?'Hypothyroid':'Hyperthyroid';
+  const bpLabel  = medState.bp==='normal'?'Normal':medState.bp==='high'?'High ⚠':'Low ⚠';
+  const bpColor  = medState.bp==='normal'?'ok':'warn';
+  const diabColor= medState.diabetes==='yes'?'warn':'ok';
+  document.getElementById('medSummary').innerHTML = `
+    <div class="med-pill"><div class="med-pill-label">BMI</div><div class="med-pill-val ${bmiColor}">${state.bmi.toFixed(1)}</div></div>
+    <div class="med-pill"><div class="med-pill-label">Diabetic</div><div class="med-pill-val ${diabColor}">${medState.diabetes==='yes'?'Yes':'No'}</div></div>
+    <div class="med-pill"><div class="med-pill-label">Thyroid</div><div class="med-pill-val">${thyLabel}</div></div>
+    <div class="med-pill"><div class="med-pill-label">Blood Pressure</div><div class="med-pill-val ${bpColor}">${bpLabel}</div></div>
+  `;
+
+  // Red flags
+  const rfBox = document.getElementById('redFlagBox');
+  if(flags.length>0){
+    rfBox.innerHTML = `<div class="red-flag-box">
+      <div class="red-flag-title">⚠ HIGH RISK SIGNALS DETECTED</div>
+      ${flags.map(f=>`<div class="flag-item"><span class="flag-arrow">>></span>${f}</div>`).join('')}
+    </div>`;
+  } else { rfBox.innerHTML=''; }
+
+  // Disease bars
+  const list = document.getElementById('diseaseList');
+  list.innerHTML = '';
+  sorted.filter(d=>d.pct>=10).slice(0,5).forEach((d,i)=>{
+    const isTop = i===0;
+    const barClass = d.sev==='LOW'?'bar-low':d.sev==='MEDIUM'?'bar-medium':'bar-high';
+    const el = document.createElement('div');
+    el.className = 'disease-item' + (isTop?' top-match':'');
+    el.style.animationDelay = (i*0.08)+'s';
+    el.innerHTML = `
+      ${isTop?'<div class="top-match-label">★ TOP MATCH</div>':''}
+      <div class="disease-row">
+        <div class="disease-name">${d.name}</div>
+        <div class="disease-right">
+          <span class="sev-badge sev-${d.sev}">${d.sev}</span>
+          <span class="pct-text">${d.pct.toFixed(1)}%</span>
+        </div>
+      </div>
+      <div class="bar-track"><div class="bar-fill ${barClass}" data-pct="${d.pct}"></div></div>
+    `;
+    list.appendChild(el);
+  });
+
+  // Animate bars
+  setTimeout(()=>{
+    document.querySelectorAll('.bar-fill').forEach(b=>{
+      b.style.width = b.dataset.pct+'%';
+    });
+  }, 100);
+
+  // Recommendation
+  document.getElementById('recBox').innerHTML = `
+    <div class="rec-label">Recommendation</div>
+    <div class="rec-text">${top.rec}</div>
+  `;
+
+  // Build report text
+  const now = new Date().toLocaleString();
+  const symList = Array.from(state.selectedSymptoms).join(', ');
+  const topDiag = sorted.filter(d=>d.pct>=10).slice(0,3).map((d,i)=>`  ${i+1}. ${d.name.padEnd(26)}— ${d.sev.padEnd(8)}— ${d.pct.toFixed(1)}%`).join('\n');
+  const flagLines = flags.length>0 ? flags.map(f=>`  >> ${f}`).join('\n') : '  None detected';
+  const thyStr = medState.thyroid==='none'?'None':medState.thyroid==='hypo'?'Hypothyroid':'Hyperthyroid';
+  const bpStr  = medState.bp==='normal'?'Normal':medState.bp==='high'?`High (${document.getElementById('bpSys').value||'?'}/${document.getElementById('bpDia').value||'?'} mmHg)`:`Low (${document.getElementById('bpSys').value||'?'}/${document.getElementById('bpDia').value||'?'} mmHg)`;
+  const dbStr  = medState.diabetes==='yes'?`Yes (${document.getElementById('bloodSugar').value||'?'} mg/dL)`:'No';
+  const fvStr  = medState.fever==='yes'?`Yes — ${document.getElementById('feverTemp').value||'?'}°F for ${document.getElementById('feverDays').value||'?'} days`:'No';
+
+  const report = `=============================================
+        MEDITOT HEALTH TRIAGE REPORT
+=============================================
+Date & Time  : ${now}
+Patient Name : ${state.name}
+Age / Gender : ${state.age} / ${state.gender}
+BMI          : ${state.bmi.toFixed(1)} (${state.bmiCat})
+Risk Profile : ${(state.age>=60||state.bmi>=30)?'ELEVATED':'NORMAL'}
+---------------------------------------------
+MEDICAL HISTORY:
+  Diabetic  : ${dbStr}
+  Thyroid   : ${thyStr}
+  BP Status : ${bpStr}
+  Fever     : ${fvStr}
+---------------------------------------------
+SYMPTOMS REPORTED:
+  ${symList}
+---------------------------------------------
+DIAGNOSIS RESULTS:
+${topDiag}
+---------------------------------------------
+TOP DIAGNOSIS  : ${top.name}
+RECOMMENDATION : ${top.rec}
+---------------------------------------------
+!! HIGH RISK SIGNALS DETECTED:
+${flagLines}
+=============================================`;
+
+  document.getElementById('reportBox').textContent = report;
+  window._reportText = report;
+  window._patientName = state.name.replace(/\s+/g,'_');
+}
+
+// ── DOWNLOAD ──
+function downloadReport(){
+  const blob = new Blob([window._reportText||'No report'], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (window._patientName||'patient') + '_report.txt';
+  a.click();
+}
+
+// ── RESET ──
+function resetAll(){
+  state.selectedSymptoms.clear();
+  document.getElementById('resultsScreen').style.display='none';
+  goStep(1);
+  ['s1','s2','s3','s4'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.classList.remove('active','done');
+  });
+  document.getElementById('s1').classList.add('active');
+  document.getElementById('card1').classList.add('active');
+}
+</script>
+</body>
+</html>

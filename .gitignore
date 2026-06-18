@@ -1,0 +1,7 @@
+# Ignore compiled executables
+*.exe
+*.out
+
+# Ignore local test logs and generated reports
+triage_log.txt
+*_report.txt
