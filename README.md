@@ -16,7 +16,7 @@ The engine evaluates patient data through three isolated logical phases:
 
 When a triage session concludes, the runtime executes localized filesystem persistence, logging historical metrics to an append-only ledger (`triage_log.txt`) and exporting isolated, structured text-based diagnostic files:
 
-![Terminal Triage Report](demo.png)
+![Terminal Triage Report](demo1.png)
 
 ---
 
