@@ -1,6 +1,8 @@
 # PulseMatrix
 A high-performance, deterministic C engine designed for autonomous patient triage and clinical risk stratification. The core architecture utilizes a multi-tiered evaluation pipeline that weighs acute symptom profiles against historical physiological baselines while processing heuristic edge-cases for acute systemic emergencies.
 
+- Standalone CLI triage engine
+
 ![System Architecture Blueprint](demo1.png)
 
 🛠️ System Architecture & Working Mechanism
