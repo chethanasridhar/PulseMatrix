@@ -33,6 +33,7 @@ The engine parses underlying physiological comorbidities alongside acute indicat
 ### 4. File-System Logging & Export
 The backend runs automated physical file serialization, mapping telemetry inputs to an append-only ledger and generating structured, local diagnostic summaries.
 
+
 ![Report Generation](web4.png)
 
 ---
